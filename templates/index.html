@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Nyelv Translator</title>
+  <style>
+    body { font-family:sans-serif; background:#f6f6ff; display:flex; height:100vh; justify-content:center; align-items:center; }
+    .container { display:flex; gap:20px; }
+    textarea { width:300px; height:400px; border-radius:15px; border:none; padding:10px; font-size:16px; }
+    button { font-size:24px; border-radius:15px; padding:10px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <textarea id="input" placeholder="NYELV"></textarea>
+    <button id="swap">🔁</button>
+    <textarea id="output" placeholder="DIGITAL" readonly></textarea>
+  </div>
+
+  <script>
+    let direction = "encode"; // encode: text->numbers, decode: numbers->text
+
+    const inputBox = document.getElementById("input");
+    const outputBox = document.getElementById("output");
+    const swapBtn = document.getElementById("swap");
+
+    swapBtn.onclick = () => { direction = direction==="encode"?"decode":"encode"; [inputBox.placeholder,outputBox.placeholder] = [outputBox.placeholder,inputBox.placeholder]; update(); }
+
+    inputBox.addEventListener("input", update);
+
+    function update(){
+      fetch("/translate", {
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({text: inputBox.value, direction: direction})
+      }).then(r=>r.json()).then(data => outputBox.value = data.result);
+    }
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Nyelv Translator</title>
+  <style>
+    body { font-family:sans-serif; background:#f6f6ff; display:flex; height:100vh; justify-content:center; align-items:center; }
+    .container { display:flex; gap:20px; }
+    textarea { width:300px; height:400px; border-radius:15px; border:none; padding:10px; font-size:16px; }
+    button { font-size:24px; border-radius:15px; padding:10px; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <textarea id="input" placeholder="NYELV"></textarea>
+    <button id="swap">🔁</button>
+    <textarea id="output" placeholder="DIGITAL" readonly></textarea>
+  </div>
+
+  <script>
+    let direction = "encode"; 
+
+    const inputBox = document.getElementById("input");
+    const outputBox = document.getElementById("output");
+    const swapBtn = document.getElementById("swap");
+
+    swapBtn.onclick = () => {
+      direction = direction==="encode"?"decode":"encode";
+      [inputBox.placeholder, outputBox.placeholder] = [outputBox.placeholder, inputBox.placeholder];
+      update();
+    }
+
+    inputBox.addEventListener("input", update);
+
+    function update(){
+      fetch("/translate", {
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({text: inputBox.value, direction: direction})
+      }).then(r=>r.json()).then(data => outputBox.value = data.result);
+    }
+  </script>
+</body>
+</html>
