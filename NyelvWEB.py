@@ -1,62 +1,72 @@
-from flask import Flask, request, jsonify, render_template
-import unicodedata
+from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-# ------------------------- MAPPINGS -------------------------
-letters_lower = "abcdefghijklmnopqrstuvwxyz"
-letters_upper = letters_lower.upper()
+# ---------- Codexian mapping ----------
+codexian = {
+    "a": "7", "b": "37", "c": "8", "d": "65", "e": "3", "f": "46",
+    "g": "5", "h": "2", "i": "0", "j": "91", "k": "20", "l": "47",
+    "m": "11", "n": "12", "o": "13", "p": "14", "q": "15", "r": "16",
+    "s": "17", "t": "18", "u": "19", "v": "21", "w": "22", "x": "23",
+    "y": "24", "z": "25",
+    "0": "203", "1": "214", "2": "225", "3": "236", "4": "247",
+    "5": "258", "6": "269", "7": "280", "8": "291", "9": "302",
+    " ": "99",
+    "?": "517", ",": "684", ".": "729", "'": "845", '"': "906",
+    "@": "392", "&": "478", "$": "563", ")": "821", "(": "742",
+    ";": "655", ":": "834", "/": "903", "-": "776", "[": "512",
+    "]": "624", "{": "871", "}": "958", "#": "439", "%": "627",
+    "^": "713", "*": "894", "+": "550", "=": "688", "_": "799",
+    "\\": "941", "|": "860", "~": "732", "<": "519", ">": "640",
+    "€": "875", "£": "921", "¥": "999", "•": "888"
+}
 
-char_to_num = {}
-for i,ch in enumerate(letters_lower):
-    char_to_num[ch] = f"{i+1:02d}"
-for i,ch in enumerate(letters_upper):
-    char_to_num[ch] = f"{i+27:02d}"
-for i in range(10):
-    char_to_num[str(i)] = f"{i+53:02d}"
-symbols = ["?","/",",",".","'","\"","@","&","$","(",")",";","-",":",
-           "[","]","{","}","#","%","^","*","+","=","_","\\","|","~","<",">","€","£","¥","•"]
-for i,s in enumerate(symbols):
-    char_to_num[s] = f"{i+63:02d}"
-char_to_num[" "] = "99"
+reverse_codexian = {v: k for k, v in codexian.items()}
 
-num_to_char = {v:k for k,v in char_to_num.items()}
+# ---------- Translation functions ----------
+def encode_text(text):
+    result = ""
+    for char in text:
+        char_lower = char.lower()
+        if char_lower in codexian:
+            result += codexian[char_lower]
+        else:
+            result += char
+    return result
 
-# ------------------------- FUNCTIONS -------------------------
-def text_to_numbers(text: str) -> str:
-    text = unicodedata.normalize("NFC", text)
-    text = (text.replace("ą","a").replace("ć","c").replace("ę","e").replace("ł","l")
-                .replace("ń","n").replace("ó","o").replace("ś","s").replace("ź","z")
-                .replace("ż","z")
-                .replace("Ą","A").replace("Ć","C").replace("Ę","E").replace("Ł","L")
-                .replace("Ń","N").replace("Ó","O").replace("Ś","S").replace("Ź","Z")
-                .replace("Ż","Z"))
-    return "".join(char_to_num.get(ch,"") for ch in text)
+def decode_text(code):
+    i = 0
+    result = ""
+    while i < len(code):
+        found = False
+        for length in [3,2,1]:
+            piece = code[i:i+length]
+            if piece in reverse_codexian:
+                result += reverse_codexian[piece]
+                i += length
+                found = True
+                break
+        if not found:
+            result += code[i]
+            i += 1
+    return result
 
-def numbers_to_text(s: str) -> str:
-    i, n = 0, len(s)
-    res = []
-    while i < n:
-        code = s[i:i+2]  # fixed 2-digit mapping
-        if code in num_to_char:
-            res.append(num_to_char[code])
-        i += 2
-    return "".join(res)
-
-# ------------------------- ROUTES -------------------------
-@app.route("/")
-def index():
-    return render_template("index.html")  # frontend HTML
+# ---------- Routes ----------
+@app.route("/", methods=["GET"])
+def home():
+    return render_template("index.html")
 
 @app.route("/translate", methods=["POST"])
 def translate():
-    data = request.json
+    data = request.get_json()
     text = data.get("text","")
-    direction = data.get("direction","encode")  # "encode" or "decode"
-    if direction=="encode":
-        return jsonify({"result": text_to_numbers(text)})
+    direction = data.get("direction","encode")
+    if direction == "encode":
+        return jsonify({"result": encode_text(text)})
     else:
-        return jsonify({"result": numbers_to_text(text)})
+        return jsonify({"result": decode_text(text)})
 
-if __name__=="__main__":
+if __name__ == "__main__":
+    import webbrowser
+    webbrowser.open("http://127.0.0.1:5000")
     app.run(debug=True)
